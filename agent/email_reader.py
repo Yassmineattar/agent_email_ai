@@ -11,15 +11,13 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 def fetch_support_emails(limit=50):
     """
     Se connecte à la boîte Gmail du support et lit :
-    - les messages reçus (INBOX)
     - les messages envoyés ([Gmail]/Sent Mail)
 
-    Retourne deux listes : inbox_emails, sent_emails
+    Retourne une liste: sent_emails
     """
     sent_emails = []
 
-    base_dir = Path("data")
-    sent_dir = base_dir / "sent"
+    sent_dir = Path("data")
     sent_dir.mkdir(parents=True, exist_ok=True)
 
     print("📡 Connexion à Gmail (support)...")
@@ -27,7 +25,7 @@ def fetch_support_emails(limit=50):
     with MailBox("imap.gmail.com").login(EMAIL, EMAIL_PASS) as mailbox:
 
         # # === INBOX ===
-        # print("📥 Lecture des messages reçus (INBOX)...")
+        # print(" Lecture des messages reçus (INBOX)...")
         # mailbox.folder.set("INBOX")
         # for msg in mailbox.fetch(limit=limit, reverse=True):
         #     image_paths = []
@@ -51,7 +49,8 @@ def fetch_support_emails(limit=50):
         #     })
 
         # === SENT ===
-        print("📤 Lecture des messages envoyés ([Gmail]/Sent Mail)...")
+        # Les emails SENT contiennent deja les messages envoyés par le support
+        print(" Lecture des messages envoyés ([Gmail]/Sent Mail)...")
         mailbox.folder.set("[Gmail]/Messages envoyés")
         for msg in mailbox.fetch(limit=limit, reverse=True):
             image_paths = []

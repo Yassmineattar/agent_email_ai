@@ -1,0 +1,1 @@
+Agent IA d'extraction automatisée de Q/R depuis des e-mails de support technique (SAP, Docubase, etc.) vers une base de connaissances pour chatbot.
