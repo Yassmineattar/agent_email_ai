@@ -2,7 +2,7 @@ from email_reader import fetch_support_emails
 # from preprocessor import split_reply_and_quote 
 
 if __name__ == "__main__":
-    sent = fetch_support_emails(limit=10)
+    sent = fetch_support_emails(limit=20)
 
     print(f"\n=== 📤 SENT ({len(sent)} messages) ===")
     for i, mail in enumerate(sent, 1):
@@ -11,6 +11,7 @@ if __name__ == "__main__":
         print("De :", mail["from"])
         print("À :", mail["to"])
         print("Date :", mail["date"])
+        print("Contenu :", mail["content"])
 
         # # Preprocess content to extract reply & quoted question
         # result = split_reply_and_quote(mail["content"])

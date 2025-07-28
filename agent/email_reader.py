@@ -9,11 +9,11 @@ load_dotenv()
 EMAIL = os.getenv("EMAIL")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-def fetch_support_emails(limit=50):
+def fetch_support_emails(limit=150):
     """
     Se connecte à la boîte Gmail du support et lit :
     - les messages envoyés ([Gmail]/Sent Mail)
-    Enregistre les résultats dans sent_emails.csv + pièces jointes image
+    Enregistre les résultats(données brutes) dans sent_emails.csv + pièces jointes image
     """
     sent_emails = []
 
@@ -25,13 +25,13 @@ def fetch_support_emails(limit=50):
 
     with MailBox("imap.gmail.com").login(EMAIL, EMAIL_PASS) as mailbox:
         print(" Lecture des messages envoyés ([Gmail]/Messages envoyés)...")
-        mailbox.folder.set("Solution SAP")
+        mailbox.folder.set("problème SAP")
 
         for msg in mailbox.fetch(limit=limit, reverse=True):
             image_paths = []
 
             for att in msg.attachments:
-                if "image" in att.content_type:
+                if "image" in att.content_type  and "LOGO CERTIF" not in att.filename.upper() :
                     img_path = img_dir / f"{msg.uid}_{att.filename}"
                     with open(img_path, "wb") as f:
                         f.write(att.payload)
@@ -43,7 +43,6 @@ def fetch_support_emails(limit=50):
                 "from": msg.from_,
                 "to": msg.to,
                 "date": msg.date.strftime("%Y-%m-%d %H:%M:%S"),
-                # "content": (msg.text or msg.html or "").replace("\r", "").replace("\n", " ").strip(),
                 "content": msg.text or msg.html or "",
                 "image_paths": ", ".join(image_paths),
                 "folder": "SENT"

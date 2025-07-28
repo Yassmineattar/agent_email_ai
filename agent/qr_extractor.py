@@ -22,9 +22,16 @@ llm = ChatOpenAI(
 prompt_template = PromptTemplate(
     input_variables=["email_full"],
     template="""
-Tu es un assistant intelligent. Un technicien IT répond à un utilisateur. Le message contient souvent un résumé du problème initial (posé par l'utilisateur) suivi d’une solution proposée par le support.
+Tu es un assistant support technique. Tu vas lire un message complet contenant :
+- l'objet du mail (sujet)
+- le contenu de l'échange entre un utilisateur et un technicien IT.
 
-Lis le message ci-dessous et retourne uniquement un JSON structuré :
+Tu dois analyser ce message et :
+1. Identifier le **logiciel concerné** (exemples : SAP, AGIRH, Docubase, MariProject)
+2. Résumer **le problème** mentionné par l’utilisateur
+3. Extraire **la solution apportée par le support**
+
+Retourne uniquement un JSON structuré :
 
 {{
   "logiciel": "...",
