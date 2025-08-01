@@ -2,36 +2,37 @@ import pandas as pd
 import os
 import json
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
-# Load API key
+# Charger la clé API
 load_dotenv()
-api_key = os.getenv("OPENROUTER_API_KEY")
+api_key = os.getenv("GOOGLE_API_KEY")
 
-# Init LLM via OpenRouter (modèle gratuit)
-llm = ChatOpenAI(
-    temperature=0,
-    model="mistralai/mistral-7b-instruct", #the instruct model is fine tuned to follow instructions so it can do tasks and answer questions in a natural way. The base model doesn't do that.
-    openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=api_key
+# Initialiser Gemini (remplace OpenRouter)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-pro",
+    google_api_key=api_key,
+    temperature=0  # ou ajuste si tu veux plus de variété
 )
 
 # Prompt pour extraction Q/R
 prompt_template = PromptTemplate(
     input_variables=["email_full"],
     template="""
-Tu es un assistant support technique. Tu vas lire un message complet contenant :
-- l'objet du mail (sujet)
-- le contenu de l'échange entre un utilisateur et un technicien IT.
+Tu es un assistant IT. Tu vas lire un message contenant un échange entre un utilisateur et un technicien support. Le message peut ou non contenir un problème logiciel réel.
 
-Tu dois analyser ce message et :
-1. Identifier le **logiciel concerné** (exemples : SAP, AGIRH, Docubase, MariProject)
-2. Résumer **le problème** mentionné par l’utilisateur
-3. Extraire **la solution apportée par le support**
+Ta tâche est de :
+1. Identifier le **logiciel concerné** (SAP, AGIRH, Docubase, MariProject, etc.)
+2. Extraire le **problème rencontré** par l'utilisateur
+3. Expliquer la **solution donnée** par le support
 
-Retourne uniquement un JSON structuré :
+⚠️ Si le message n’a rien à voir avec un problème logiciel, réponds uniquement :
+
+`{"skip": true}`
+
+Sinon, retourne ce JSON structuré :
 
 {{
   "logiciel": "...",
@@ -44,9 +45,10 @@ Retourne uniquement un JSON structuré :
 """
 )
 
+# Chaîne avec LLM
 chain = LLMChain(llm=llm, prompt=prompt_template)
 
-# Extraction
+# Fonction d'extraction
 def extract_qr(input_csv="data/structured_input.csv", output_csv="data/structured_qr.csv"):
     df = pd.read_csv(input_csv)
     structured_results = []
@@ -70,6 +72,9 @@ def extract_qr(input_csv="data/structured_input.csv", output_csv="data/structure
 
             data = json.loads(json_str)
 
+            if data.get("skip"):
+                continue
+
             structured_results.append({
                 "uid": uid,
                 "logiciel": data.get("logiciel", row.get("logiciel_detecte", "")),
@@ -86,6 +91,6 @@ def extract_qr(input_csv="data/structured_input.csv", output_csv="data/structure
     df_out.to_csv(output_csv, index=False)
     print(f"\n✅ Extraction terminée : {output_csv} généré avec {len(df_out)} lignes.")
 
-# Lance l'exécution
+# Exécution
 if __name__ == "__main__":
     extract_qr()
