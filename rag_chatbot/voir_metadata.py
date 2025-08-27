@@ -1,6 +1,6 @@
 import pickle
 
-with open("metadata.pkl", "rb") as f:
+with open("db/metadata.pkl", "rb") as f:
     metadata = pickle.load(f)
 
 # Affiche le nombre d'éléments
