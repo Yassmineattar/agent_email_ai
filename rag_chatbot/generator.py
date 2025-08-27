@@ -1,10 +1,8 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import List
 from retriever import SearchResult
-import torch
 import logging
 import os
-from pathlib import Path
+from openai import OpenAI
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -12,42 +10,22 @@ logger = logging.getLogger(__name__)
 class ResponseGenerator:
     def __init__(self, model_name: str, device: str = None):
         """
-        Initialise le générateur de réponses avec LLaMA.
+        Initialise le générateur de réponses via OpenRouter.
         
         Args:
-            model_name: nom du modèle HF ou chemin local
-            device: "cuda", "cpu" ou None pour auto-détection
+            model_name: identifiant du modèle OpenRouter (ex: meta-llama/llama-3.2-1b-instruct)
+            device: ignoré ici (géré côté API)
         """
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name = model_name
-        hf_token = os.getenv("HF_TOKEN")
-        
-        logger.info(f"Chargement du modèle {model_name} sur {self.device}...")
-        
-        # Chargement avec gestion d'erreurs
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_name, 
-                token=hf_token,
-                padding_side="left"  # Important pour la génération
-            )
-            
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-            
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                token=hf_token,
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                device_map="auto" if self.device == "cuda" else None,
-                low_cpu_mem_usage=True
-            )
-            
-            logger.info("Modèle chargé avec succès")
-            
-        except Exception as e:
-            logger.error(f"Erreur de chargement: {e}")
-            raise
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("Veuillez définir la variable d'environnement OPENROUTER_API_KEY")
+
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key
+        )
+        logger.info(f" Générateur initialisé avec {model_name} (OpenRouter)")
 
     def _build_prompt(self, query: str, context_results: List[SearchResult]) -> str:
         """Construit le prompt contextuel"""
@@ -60,7 +38,7 @@ class ResponseGenerator:
                 f"Solution: {res.solution}\n\n"
             )
 
-        return f"""<|system|>
+        return f"""
 Vous êtes un assistant technique expert. Répondez à la question en utilisant exclusivement le contexte fourni.
 
 CONTEXTE:
@@ -71,61 +49,39 @@ INSTRUCTIONS:
 - Mentionnez le logiciel concerné
 - Citez les sources lorsque pertinent
 - Si le contexte ne contient pas la réponse, dites-le clairement
-- Répondez en français</s>
+- Répondez en français
 
-<|user|>
-{query}</s>
-
-<|assistant|>
+QUESTION UTILISATEUR:
+{query}
 """
 
     def generate_response(self, query: str, context_results: List[SearchResult]) -> str:
-        """Génère une réponse contextuelle"""
+        """Génère une réponse contextuelle avec OpenRouter"""
         if not context_results:
             return "Je n'ai pas trouvé d'informations pertinentes dans ma base de connaissances."
         
-        # Construction du prompt
         prompt = self._build_prompt(query, context_results)
-        
+
         try:
-            # Tokenization avec gestion de la longueur
-            inputs = self.tokenizer(
-                prompt, 
-                return_tensors="pt", 
-                truncation=True, 
-                max_length=3000
-            ).to(self.device)
-
-            # Génération avec paramètres optimisés
-            with torch.inference_mode():
-                output_ids = self.model.generate(
-                    **inputs,
-                    max_new_tokens=256,
-                    do_sample=True,
-                    temperature=0.7,
-                    top_p=0.9,
-                    top_k=50,
-                    repetition_penalty=1.1,
-                    pad_token_id=self.tokenizer.eos_token_id,
-                    eos_token_id=self.tokenizer.eos_token_id
-                )
-
-            # Décodage de la réponse
-            response = self.tokenizer.decode(
-                output_ids[0][inputs.input_ids.shape[1]:], 
-                skip_special_tokens=True
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "Tu es un assistant technique utile."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=400
             )
-            
-            logger.info(f" Réponse générée ({(len(response))} caractères)")
-            return response.strip()
-            
-        except RuntimeError as e:
-            if "out of memory" in str(e).lower():
-                logger.error("Out of Memory - Réduction de la longueur du contexte")
-                return "Erreur de mémoire. Veuillez reformuler votre question."
-            raise
+            content = response.choices[0].message.content.strip()
+            logger.info(f" Réponse générée ({len(content)} caractères)")
+            return content
 
-# Exemple d'utilisation avec gestion d'erreurs
+        except Exception as e:
+            logger.error(f"Erreur pendant la génération: {e}")
+            return f"Erreur: {str(e)}"
+
+
+# Exemple d’utilisation rapide
 if __name__ == "__main__":
     try:
         from retriever import SemanticSearcher
@@ -140,7 +96,7 @@ if __name__ == "__main__":
         results = searcher.search(query, k=3)
 
         generator = ResponseGenerator(
-            model_name="meta-llama/Llama-3.2-1B-Instruct"
+            model_name="meta-llama/llama-3.2-1b-instruct"
         )
 
         response = generator.generate_response(query, results)

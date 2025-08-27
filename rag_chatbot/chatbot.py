@@ -140,7 +140,7 @@ class RAGChatbot:
                 if result['sources']:
                     print(f"\n Sources:")
                     for source in result['sources']:
-                        print(f"  - {source['logiciel']} (confiance: {1-source['distance']:.2%})")
+                        print(f"- {source['uid'], source['logiciel']} (confiance: {1-source['distance']:.2%})")
                 
                 # Métriques de performance
                 print(f"\n  Temps total: {result['metrics']['total_time']}s")
