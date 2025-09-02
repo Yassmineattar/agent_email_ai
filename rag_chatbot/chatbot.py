@@ -2,23 +2,72 @@ from retriever import SemanticSearcher
 from generator import ResponseGenerator
 import logging
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
+import hashlib
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class CacheManager:
+    """Gestionnaire de cache simple avec fichiers JSON"""
+    def __init__(self, cache_dir: str = "cache"):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(exist_ok=True)
+        logger.info(f"- Cache initialisé dans {cache_dir}")
+
+    def _get_cache_key(self, question: str) -> str:
+        """Génère une clé de cache unique"""
+        return hashlib.md5(question.strip().lower().encode()).hexdigest()
+
+    def _get_cache_path(self, question: str) -> Path:
+        """Retourne le chemin du fichier cache"""
+        key = self._get_cache_key(question)
+        return self.cache_dir / f"{key}.json"
+
+    def get(self, question: str) -> Dict[str, Any]:
+        """Récupère une réponse du cache"""
+        cache_file = self._get_cache_path(question)
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f)
+                logger.info(f"- Cache hit pour: {question[:50]}...")
+                return cached_data
+            except Exception as e:
+                logger.error(f"- Erreur lecture cache: {e}")
+        logger.info(f"- Cache miss pour: {question[:50]}...")
+        return None
+
+    def set(self, question: str, data: Dict[str, Any]):
+        """Stocke une réponse dans le cache"""
+        try:
+            cache_file = self._get_cache_path(question)
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"- Cache stored pour: {question[:50]}...")
+        except Exception as e:
+            logger.error(f"- Erreur écriture cache: {e}")
+
+    def clear(self):
+        """Vide le cache"""
+        for cache_file in self.cache_dir.glob("*.json"):
+            try:
+                cache_file.unlink()
+            except Exception as e:
+                logger.error(f"- Erreur suppression cache: {e}")
+        logger.info("- Cache vidé")
+
 class RAGChatbot:
     def __init__(self, config: Dict[str, Any] = None):
         """
-        Orchestrateur principal du système RAG.
-        
-        Args:
-            config: Configuration pour les chemins et modèles
+        Orchestrateur principal du système RAG - Mode ligne de commande seulement.
         """
         self.config = config or self._default_config()
+        self.cache = CacheManager()
         self._initialize_components()
-        logger.info(" Chatbot RAG initialisé avec succès")
+        logger.info("🤖 Chatbot RAG initialisé (mode CLI)")
 
     def _default_config(self) -> Dict[str, Any]:
         """Configuration par défaut"""
@@ -29,9 +78,10 @@ class RAGChatbot:
                 "metadata_path": "db/metadata.pkl"
             },
             "generator": {
-                "model_name": "meta-llama/Llama-3.2-1B-Instruct",
-                "device": None  # Auto-détection
-            }
+                "model_name": "meta-llama/llama-3.2-1b-instruct",
+                "device": None
+            },
+            "cache_enabled": True
         }
 
     def _initialize_components(self):
@@ -52,10 +102,10 @@ class RAGChatbot:
                 device=generator_config["device"]
             )
             
-            logger.info(" Composants RAG initialisés")
+            logger.info("✅ Composants RAG initialisés")
             
         except Exception as e:
-            logger.error(f" Erreur d'initialisation: {e}")
+            logger.error(f"❌ Erreur d'initialisation: {e}")
             raise
 
     def ask(self, question: str, k: int = 3) -> Dict[str, Any]:
@@ -69,6 +119,12 @@ class RAGChatbot:
         Returns:
             Dictionnaire avec réponse, métriques et sources
         """
+        # Vérifier le cache d'abord
+        if self.config["cache_enabled"]:
+            cached_response = self.cache.get(question)
+            if cached_response:
+                return {**cached_response, "cached": True}
+        
         try:
             start_time = time.time()
             
@@ -85,7 +141,7 @@ class RAGChatbot:
             total_time = time.time() - start_time
             
             # Formatage de la réponse
-            return {
+            result = {
                 "question": question,
                 "response": response,
                 "sources": [
@@ -93,7 +149,8 @@ class RAGChatbot:
                         "uid": res.uid,
                         "logiciel": res.logiciel,
                         "probleme": res.probleme,
-                        "distance": res.distance
+                        "distance": res.distance,
+                        "confidence": (1 - res.distance) * 100
                     } for res in results
                 ],
                 "metrics": {
@@ -102,29 +159,37 @@ class RAGChatbot:
                     "generation_time": round(generation_time, 2),
                     "results_count": len(results)
                 },
-                "success": True
+                "success": True,
+                "cached": False
             }
             
+            # Stocker dans le cache
+            if self.config["cache_enabled"]:
+                self.cache.set(question, result)
+            
+            return result
+            
         except Exception as e:
-            logger.error(f" Erreur lors de la génération: {e}")
+            logger.error(f"- Erreur lors de la génération: {e}")
             return {
                 "question": question,
                 "response": f"Erreur: {str(e)}",
                 "sources": [],
                 "metrics": {},
-                "success": False
+                "success": False,
+                "cached": False
             }
 
     def interactive_chat(self):
         """Mode interactif en ligne de commande"""
-        print(" Chatbot RAG - Tapez 'quit' pour quitter\n")
+        print("🤖 Chatbot RAG - Tapez 'quit' pour quitter\n")
         
         while True:
             try:
-                question = input(" Vous: ").strip()
+                question = input("💬 Vous: ").strip()
                 
                 if question.lower() in ['quit', 'exit', 'q']:
-                    print(" À bientôt!")
+                    print("👋 À bientôt!")
                     break
                 
                 if not question:
@@ -134,23 +199,31 @@ class RAGChatbot:
                 result = self.ask(question)
                 
                 # Affichage de la réponse
-                print(f"\n Assistant: {result['response']}")
+                print(f"\n🤖 Assistant: {result['response']}")
+                
+                if result.get('cached', False):
+                    print("⚡ (Réponse depuis le cache)")
                 
                 # Affichage des sources si disponibles
                 if result['sources']:
-                    print(f"\n Sources:")
+                    print(f"\n📚 Sources:")
                     for source in result['sources']:
-                        print(f"- {source['uid'], source['logiciel']} (confiance: {1-source['distance']:.2%})")
+                        print(f"  - {source['logiciel']} (confiance: {source['confidence']:.1f}%)")
                 
                 # Métriques de performance
-                print(f"\n  Temps total: {result['metrics']['total_time']}s")
+                print(f"\n⏱️  Temps total: {result['metrics']['total_time']}s")
+                if result['metrics']['retrieval_time'] > 0:
+                    print(f"🔍 Recherche: {result['metrics']['retrieval_time']}s")
+                if result['metrics']['generation_time'] > 0:
+                    print(f"🤖 Génération: {result['metrics']['generation_time']}s")
+                
                 print("─" * 50)
                 
             except KeyboardInterrupt:
-                print("\n Interruption utilisateur")
+                print("\n⏹️  Interruption utilisateur")
                 break
             except Exception as e:
-                print(f" Erreur: {e}")
+                print(f"❌ Erreur: {e}")
 
 # Interface simplifiée pour tests rapides
 def simple_chat():
@@ -158,17 +231,16 @@ def simple_chat():
     chatbot = RAGChatbot()
     
     while True:
-        question = input("\n Posez votre question: ").strip()
+        question = input("\n💬 Posez votre question: ").strip()
         if question.lower() in ['quit', 'exit']:
             break
         
         result = chatbot.ask(question)
-        print(f"\n Réponse: {result['response']}")
+        print(f"\n🤖 Réponse: {result['response']}")
+        if result.get('cached', False):
+            print("⚡ (Depuis le cache)")
 
 if __name__ == "__main__":
     # Mode interactif complet
     chatbot = RAGChatbot()
     chatbot.interactive_chat()
-    
-    # Alternative: mode simple
-    # simple_chat()

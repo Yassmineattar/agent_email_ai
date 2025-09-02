@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 data
 db
+cache/
+*.cache
+logs/
+*.log
