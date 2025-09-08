@@ -1,5 +1,5 @@
-from retriever import SemanticSearcher
-from generator import ResponseGenerator
+from retriever import SemanticSearcher #add rag_chatbot.retriever when use app if not no need to
+from generator import ResponseGenerator #add rag_chatbot.generator when use app
 import logging
 import time
 from typing import Dict, Any, List

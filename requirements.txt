@@ -34,7 +34,6 @@ typing_extensions==4.14.1
 tzdata==2025.2
 urllib3==2.5.0
 zstandard==0.23.0
-sqlite3==3.41.0f
 faiss-cpu==1.11.0.post1
 numpy==2.3.2
 sentence-transformers==5.0.0

@@ -1,5 +1,5 @@
 from typing import List
-from retriever import SearchResult
+from retriever import SearchResult #add rag_chatbot.retriever when use app
 import logging
 import os
 from openai import OpenAI
