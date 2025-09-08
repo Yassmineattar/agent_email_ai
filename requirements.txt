@@ -15,7 +15,6 @@ langchain-core==0.3.68
 langchain-text-splitters==0.3.8
 langsmith==0.4.5
 mysql-connector-python==9.3.0
-numpy==2.3.1
 orjson==3.10.18
 packaging==24.2
 pandas==2.3.1
