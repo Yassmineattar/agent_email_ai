@@ -14,7 +14,7 @@ class CacheManager:
     """Gestionnaire de cache simple avec fichiers JSON"""
     def __init__(self, cache_dir: str = "cache"):
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(exist_ok=True, parents=True) # creer le dossier dans Streamlit Cloud automatiquement
         logger.info(f"- Cache initialisé dans {cache_dir}")
 
     def _get_cache_key(self, question: str) -> str:
@@ -52,9 +52,12 @@ class CacheManager:
 
     def clear(self):
         """Vide le cache"""
+        # S'assurer que le dossier existe
+        self.cache_dir.mkdir(exist_ok=True, parents=True)
         for cache_file in self.cache_dir.glob("*.json"):
             try:
                 cache_file.unlink()
+                logger.info(f"- Fichier cache supprimé: {cache_file.name}")
             except Exception as e:
                 logger.error(f"- Erreur suppression cache: {e}")
         logger.info("- Cache vidé")

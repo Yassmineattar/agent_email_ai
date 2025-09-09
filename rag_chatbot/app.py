@@ -22,7 +22,7 @@ class AdvancedFeedbackSystem:
     
     def __init__(self, feedback_dir: str = "feedback"):
         self.feedback_dir = Path(feedback_dir)
-        self.feedback_dir.mkdir(exist_ok=True)
+        self.feedback_dir.mkdir(exist_ok=True, parents=True) # creer le dossier dans Streamlit Cloud automatiquement
         
     def save_feedback(self, session_id: str, message_id: str, question: str, 
                      response: str, feedback: str, sources: List[Dict], 
