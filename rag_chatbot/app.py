@@ -317,14 +317,14 @@ def create_sidebar(chatbot, feedback_system):
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Vider Cache", use_container_width=True, icon="🗑️"):
+            if st.button("🗑️ Vider Cache", use_container_width=True):
                 chatbot.cache.clear()
                 st.success("Cache vidé avec succès!")
                 time.sleep(1)
                 st.rerun()
         
         with col2:
-            if st.button("Nouvelle Session", use_container_width=True, icon="🔄"):
+            if st.button("🔄 Nouvelle Session", use_container_width=True):
                 for key in list(st.session_state.keys()):
                     if key not in ['session_id', 'performance_monitor']:
                         del st.session_state[key]
@@ -334,7 +334,7 @@ def create_sidebar(chatbot, feedback_system):
         
         # Export des données
         st.markdown("#### 💾 Export des Données")
-        if st.button("Exporter Conversation", use_container_width=True, icon="📤"):
+        if st.button("📤 Exporter Conversation", use_container_width=True):
             export_data = {
                 "session_id": st.session_state.session_id,
                 "start_time": st.session_state.chat_start_time,
