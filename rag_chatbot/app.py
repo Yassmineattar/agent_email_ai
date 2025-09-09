@@ -237,7 +237,23 @@ def create_sidebar(chatbot, feedback_system):
         st.image("https://img.icons8.com/fluency/96/000000/chatbot.png", width=80)
         st.markdown("### ⚙️ Configuration Avancée")
         
-        # Paramètres de recherche
+        # Vérifier si chatbot est initialisé
+        if chatbot is None:
+            st.warning("⚠️ OpenRouter non configuré")
+            st.info("Veuillez ajouter OPENROUTER_API_KEY dans les paramètres Streamlit")
+            
+            # Afficher les statistiques de feedback même en mode démo
+            st.markdown("#### 📈 Analytics Feedback")
+            feedback_stats = feedback_system.get_feedback_stats()
+            
+            if feedback_stats["total"] > 0:
+                cols = st.columns(2)
+                cols[0].metric("👍 Positifs", feedback_stats["positive"])
+                cols[1].metric("👎 Négatifs", feedback_stats["negative"])
+            
+            return  # Quitter early si chatbot n'est pas initialisé
+        
+        # Paramètres de recherche (seulement si chatbot est initialisé)
         st.markdown("#### 🔍 Paramètres de Recherche")
         k_results = st.slider(
             "Nombre de résultats", 1, 10, 3,
