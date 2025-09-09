@@ -13,7 +13,7 @@ api_key = os.getenv("OPENROUTER_API_KEY")
 # Init LLM via OpenRouter (modèle gratuit)
 llm = ChatOpenAI(
     temperature=0,
-    model="mistralai/mistral-7b-instruct", #the instruct model is fine tuned to follow instructions so it can do tasks and answer questions in a natural way. The base model doesn't do that.
+    model="mistralai/mistral-7b-instruct:free", #the instruct model is fine tuned to follow instructions so it can do tasks and answer questions in a natural way. The base model doesn't do that.
     openai_api_base="https://openrouter.ai/api/v1",
     openai_api_key=api_key
 )
