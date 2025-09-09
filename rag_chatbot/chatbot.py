@@ -81,7 +81,7 @@ class RAGChatbot:
                 "metadata_path": "db/metadata.pkl"
             },
             "generator": {
-                "model_name": "meta-llama/llama-3.2-1b-instruct",
+                "model_name": "meta-llama/llama-3.3-70b-instruct:free",
                 "device": None
             },
             "cache_enabled": True
@@ -152,6 +152,7 @@ class RAGChatbot:
                         "uid": res.uid,
                         "logiciel": res.logiciel,
                         "probleme": res.probleme,
+                        "solution": res.solution,
                         "distance": res.distance,
                         "confidence": (1 - res.distance) * 100
                     } for res in results

@@ -13,7 +13,7 @@ class ResponseGenerator:
         Initialise le générateur de réponses via OpenRouter.
         
         Args:
-            model_name: identifiant du modèle OpenRouter (ex: meta-llama/llama-3.2-1b-instruct)
+            model_name: identifiant du modèle OpenRouter (ex: meta-llama/llama-3.2-1b-instruct:free)
             device: ignoré ici (géré côté API)
         """
         self.model_name = model_name
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         results = searcher.search(query, k=3)
 
         generator = ResponseGenerator(
-            model_name="meta-llama/llama-3.2-1b-instruct"
+            model_name="meta-llama/llama-3.3-70b-instruct:free"
         )
 
         response = generator.generate_response(query, results)

@@ -395,7 +395,12 @@ def main():
     # Initialisation des composants
     @st.cache_resource
     def init_components():
-        return RAGChatbot(), AdvancedFeedbackSystem()
+        try:
+            chatbot = RAGChatbot()
+            return chatbot, AdvancedFeedbackSystem()
+        except Exception as e:
+            st.error(f"⚠️ Erreur d'initialisation: {str(e)}")
+            return None, AdvancedFeedbackSystem()
     
     chatbot, feedback_system = init_components()
     
@@ -423,11 +428,36 @@ def main():
                         if message.get("cached", False):
                             st.markdown('<span class="cache-badge">⚡ CACHÉ</span>', unsafe_allow_html=True)
                     
-                    # Feedback system
+                    # Détails techniques
+                    with st.expander("📊 Détails Techniques", expanded=False):
+                        if message.get("metrics"):
+                            metrics = message["metrics"]
+                            cols = st.columns(4)
+                            cols[0].metric("⏱️ Total", f"{metrics['total_time']:.2f}s")
+                            cols[1].metric("🔍 Recherche", f"{metrics['retrieval_time']:.2f}s")
+                            cols[2].metric("🤖 Génération", f"{metrics['generation_time']:.2f}s")
+                            cols[3].metric("📊 Résultats", metrics['results_count'])
+                        
+                        if message.get("sources"):
+                            st.markdown("**📚 Sources Utilisées:**")
+                            for j, source in enumerate(message["sources"], 1):
+                                st.markdown(f"""
+                                **Source #{j} - {source['logiciel']}**  
+                                **Confiance:** {source['confidence']:.1f}%  
+                                **UID:** {source['uid']}
+                                """)
+                                if source.get('probleme'):
+                                    st.caption(f"*Problème:* {source['probleme']}")
+                                if source.get('solution'):
+                                    st.caption(f"*Solution:* {source['solution']}")
+                    
+                    # Feedback system - SÉPARÉ des détails techniques
                     message_id = f"msg_{i}"
+                    st.markdown("---")
+                    
                     if message_id not in st.session_state.feedback_given:
                         st.markdown("**Cette réponse était-elle utile?**")
-                        feedback_cols = st.columns([1, 1, 4])
+                        feedback_cols = st.columns([1, 1, 6])
                         
                         with feedback_cols[0]:
                             if st.button("👍", key=f"like_{i}", use_container_width=True):
@@ -465,29 +495,6 @@ def main():
                             st.success("✅ Merci pour votre feedback positif!")
                         else:
                             st.warning("📝 Nous prenons note de votre retour pour nous améliorer.")
-                    
-                    # Détails techniques
-                    with st.expander("📊 Détails Techniques", expanded=False):
-                        if message.get("metrics"):
-                            metrics = message["metrics"]
-                            cols = st.columns(4)
-                            cols[0].metric("⏱️ Total", f"{metrics['total_time']:.2f}s")
-                            cols[1].metric("🔍 Recherche", f"{metrics['retrieval_time']:.2f}s")
-                            cols[2].metric("🤖 Génération", f"{metrics['generation_time']:.2f}s")
-                            cols[3].metric("📊 Résultats", metrics['results_count'])
-                        
-                        if message.get("sources"):
-                            st.markdown("**📚 Sources Utilisées:**")
-                            for j, source in enumerate(message["sources"], 1):
-                                st.markdown(f"""
-                                **Source #{j} - {source['logiciel']}**  
-                                **Confiance:** {source['confidence']:.1f}%  
-                                **UID:** {source['uid']}
-                                """)
-                                if source.get('probleme'):
-                                    st.caption(f"*Problème:* {source['probleme']}")
-                                if source.get('solution'):
-                                    st.caption(f"*Solution:* {source['solution']}")
     
     # Input utilisateur
     if prompt := st.chat_input("💬 Posez votre question technique..."):
@@ -504,21 +511,30 @@ def main():
             with st.chat_message("assistant"):
                 with st.spinner("🔍 Analyse en cours..."):
                     try:
-                        result = chatbot.ask(prompt, 3)  # k_results from sidebar would be better
+                        # Utiliser les paramètres de la sidebar si disponibles
+                        k = st.session_state.get('k_results', 3) if chatbot else 3
+                        result = chatbot.ask(prompt, k) if chatbot else {
+                            "response": "⚠️ OpenRouter non configuré. Veuillez ajouter OPENROUTER_API_KEY dans les paramètres.",
+                            "sources": [],
+                            "metrics": {},
+                            "cached": False
+                        }
                         
-                        # Track performance
-                        st.session_state.performance_monitor.add_metrics(
-                            result["metrics"], result.get("cached", False)
-                        )
+                        if chatbot:
+                            # Track performance
+                            st.session_state.performance_monitor.add_metrics(
+                                result["metrics"], result.get("cached", False)
+                            )
                         
                         # Afficher la réponse
                         st.markdown(f'<div class="assistant-response">{result["response"]}</div>', unsafe_allow_html=True)
                         
                         # Système de feedback
                         message_id = f"msg_{len(st.session_state.messages)}"
+                        st.markdown("---")
                         st.markdown("**Cette réponse était-elle utile?**")
                         
-                        feedback_cols = st.columns([1, 1, 4])
+                        feedback_cols = st.columns([1, 1, 6])
                         with feedback_cols[0]:
                             if st.button("👍", key="like_new", use_container_width=True):
                                 feedback_system.save_feedback(
@@ -553,8 +569,8 @@ def main():
                         st.session_state.messages.append({
                             "role": "assistant",
                             "content": result["response"],
-                            "sources": result["sources"],
-                            "metrics": result["metrics"],
+                            "sources": result.get("sources", []),
+                            "metrics": result.get("metrics", {}),
                             "cached": result.get("cached", False)
                         })
                         
