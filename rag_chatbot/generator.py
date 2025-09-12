@@ -47,8 +47,7 @@ CONTEXTE:
 INSTRUCTIONS:
 - Répondez de manière concise et précise
 - Mentionnez le logiciel concerné
-- Citez les sources lorsque pertinent
-- Si le contexte ne contient pas la réponse, dites-le clairement
+- Si le contexte ne contient pas la réponse, dites-le clairement et de contacter le support
 - Répondez en français
 
 QUESTION UTILISATEUR:
