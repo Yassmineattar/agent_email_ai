@@ -9,4 +9,3 @@ cache/
 logs/
 *.log
 feedback
-*.jsonl

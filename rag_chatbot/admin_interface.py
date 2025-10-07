@@ -294,12 +294,12 @@ def render_admin_dashboard(feedback_system, data_form, chatbot):
         )
     
     # Section performances
-    st.markdown("---")
-    st.subheader(f"{ICONS['chart']} Performances en Temps Réel")
+    # st.markdown("---")
+    # st.subheader(f"{ICONS['chart']} Performances en Temps Réel")
     
-    has_data = render_performance_details(perf_stats)
-    if has_data:
-        render_performance_charts()
+    # has_data = render_performance_details(perf_stats)
+    # if has_data:
+    #     render_performance_charts()
     
     # Graphiques en temps réel
     col1, col2 = st.columns(2)
