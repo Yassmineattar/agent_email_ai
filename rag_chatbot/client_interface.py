@@ -87,7 +87,7 @@ def create_conversation_sidebar():
     """Crée la sidebar pour la gestion des conversations"""
     with st.sidebar:
         #finatech logo
-        st.image("../logo_finatech.png", width=100)
+        st.image("https://www.developmentaid.org/files/organizationLogos/finatech-group-73578.jpg", width=100)
         # st.image("https://freesvg.org/img/1538298822.png", width=100)
         st.markdown("### Historique des Conversations")
         # Bouton nouvelle conversation
