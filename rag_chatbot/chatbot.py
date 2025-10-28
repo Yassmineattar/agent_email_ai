@@ -105,10 +105,10 @@ class RAGChatbot:
                 device=generator_config["device"]
             )
             
-            logger.info("✅ Composants RAG initialisés")
+            logger.info(" Composants RAG initialisés")
             
         except Exception as e:
-            logger.error(f"❌ Erreur d'initialisation: {e}")
+            logger.error(f" Erreur d'initialisation: {e}")
             raise
 
     def ask(self, question: str, k: int = 3) -> Dict[str, Any]:
@@ -186,14 +186,14 @@ class RAGChatbot:
 
     def interactive_chat(self):
         """Mode interactif en ligne de commande"""
-        print("🤖 Chatbot RAG - Tapez 'quit' pour quitter\n")
+        print(" Chatbot RAG - Tapez 'quit' pour quitter\n")
         
         while True:
             try:
-                question = input("💬 Vous: ").strip()
+                question = input(" Vous: ").strip()
                 
                 if question.lower() in ['quit', 'exit', 'q']:
-                    print("👋 À bientôt!")
+                    print(" À bientôt!")
                     break
                 
                 if not question:
@@ -203,31 +203,31 @@ class RAGChatbot:
                 result = self.ask(question)
                 
                 # Affichage de la réponse
-                print(f"\n🤖 Assistant: {result['response']}")
+                print(f"\n Assistant: {result['response']}")
                 
                 if result.get('cached', False):
-                    print("⚡ (Réponse depuis le cache)")
+                    print(" (Réponse depuis le cache)")
                 
                 # Affichage des sources si disponibles
                 if result['sources']:
-                    print(f"\n📚 Sources:")
+                    print(f"\n Sources:")
                     for source in result['sources']:
                         print(f"  - {source['logiciel']} (confiance: {source['confidence']:.1f}%)")
                 
                 # Métriques de performance
-                print(f"\n⏱️  Temps total: {result['metrics']['total_time']}s")
+                print(f"\n⏱  Temps total: {result['metrics']['total_time']}s")
                 if result['metrics']['retrieval_time'] > 0:
-                    print(f"🔍 Recherche: {result['metrics']['retrieval_time']}s")
+                    print(f" Recherche: {result['metrics']['retrieval_time']}s")
                 if result['metrics']['generation_time'] > 0:
-                    print(f"🤖 Génération: {result['metrics']['generation_time']}s")
+                    print(f" Génération: {result['metrics']['generation_time']}s")
                 
                 print("─" * 50)
                 
             except KeyboardInterrupt:
-                print("\n⏹️  Interruption utilisateur")
+                print("\n Interruption utilisateur")
                 break
             except Exception as e:
-                print(f"❌ Erreur: {e}")
+                print(f" Erreur: {e}")
 
 # Interface simplifiée pour tests rapides
 def simple_chat():
@@ -235,14 +235,14 @@ def simple_chat():
     chatbot = RAGChatbot()
     
     while True:
-        question = input("\n💬 Posez votre question: ").strip()
+        question = input("\n Posez votre question: ").strip()
         if question.lower() in ['quit', 'exit']:
             break
         
         result = chatbot.ask(question)
-        print(f"\n🤖 Réponse: {result['response']}")
+        print(f"\n Réponse: {result['response']}")
         if result.get('cached', False):
-            print("⚡ (Depuis le cache)")
+            print(" (Depuis le cache)")
 
 if __name__ == "__main__":
     # Mode interactif complet

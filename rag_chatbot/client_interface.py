@@ -86,9 +86,10 @@ def initialize_session_state():
 def create_conversation_sidebar():
     """Crée la sidebar pour la gestion des conversations"""
     with st.sidebar:
-        st.image("https://freesvg.org/img/1538298822.png", width=100)
+        #finatech logo
+        st.image("../logo_finatech.png", width=100)
+        # st.image("https://freesvg.org/img/1538298822.png", width=100)
         st.markdown("### Historique des Conversations")
-        
         # Bouton nouvelle conversation
         if st.button("Nouvelle conversation", use_container_width=True, type="primary"):
             create_new_conversation()
